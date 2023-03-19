@@ -94,9 +94,9 @@ fn main() {
             ui.label("-------------------------------------", REGULAR_PAIR);
 
             ui.label("DONE: ", REGULAR_PAIR);
-            ui.begin_list(done_curr);
+            ui.begin_list(0);
             for(index, done) in dones.iter().enumerate() {
-                ui.list_element(&format!("- [x] {}", done), index);
+                ui.list_element(&format!("- [x] {}", done), index + 1);
 
             }
             ui.end_list();
