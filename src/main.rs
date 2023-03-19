@@ -1,7 +1,8 @@
 use ncurses::*;
 use std::fs::File;
-use std::io::Write;
-
+use std::io::{self, BufRead};
+use std::env;
+use std::process;
 
 const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHT_PAIR: i16 = 1;
@@ -56,6 +57,7 @@ impl Ui {
     }
 }
 
+#[derive(Debug)]
 enum Status {
     Todo,
     Done
@@ -71,7 +73,18 @@ impl Status {
 }
 
 fn parse_item(line: &str) -> Option<(Status, &str)> {
-    todo!();
+    let todo_prefix = "TODO: ";
+    let done_prefix = "DONE: ";
+
+    if line.starts_with(todo_prefix) {
+        return Some((Status::Todo, &line[todo_prefix.len()..]))
+    }
+    
+    if line.starts_with(done_prefix) {
+        return Some((Status::Done, &line[done_prefix.len()..]))
+    }
+
+    return None;
 }
 
 fn list_up(list_curr: &mut usize) {
@@ -102,7 +115,41 @@ fn list_transfer(list_dst: &mut Vec<String>, list_src: &mut Vec<String>, list_sr
 // TODO: keep track of date when the item was DONE
 // TODO: undo system
 
+
 fn main() {
+    let mut args = env::args();
+    args.next().unwrap();
+
+    let file_path = match args.next() {
+        Some(file_path) => file_path,
+        None => {
+            eprintln!("Usage: todo-rs <file-path>");
+            eprintln!("ERROR: file path is not provided");
+            process::exit(1);
+        }
+    };
+    
+    let mut todos = Vec::<String>::new();
+    let mut todo_curr: usize = 0;
+    let mut dones = Vec::<String>::new();
+    let mut done_curr: usize = 0;
+        
+    {
+        let file = File::open(file_path.clone()).unwrap();   
+        for (index, line) in io::BufReader::new(file).lines().enumerate() {
+            match parse_item(&line.unwrap()) {
+                Some((Status::Todo, title)) => todos.push(title.to_string()),
+                Some((Status::Done, title)) => dones.push(title.to_string()),
+                None => {
+                    eprintln!("{}:{}: ERROR:  ill-formed item line", file_path, index + 1);
+                    process::exit(1);
+                }
+            }
+        }    
+    }
+
+    // process::exit(0);
+
     initscr();
     noecho();
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
@@ -112,21 +159,6 @@ fn main() {
     init_pair(HIGHLIGHT_PAIR, COLOR_BLACK, COLOR_WHITE);
     
     let mut quit = false;
-
-    let mut todo_curr: usize = 0;
-    let mut todos: Vec<String> = vec![
-        "Learn Rust".to_string(), 
-        "Learn Zig".to_string(),
-        "Learn Kubernetes".to_string()
-    ];
-
-    let mut done_curr: usize = 0;
-    let mut dones = vec![
-        "Learn C".to_string(), 
-        "Learn C++".to_string(),
-        "Learn C#".to_string()
-    ];
-
     let mut tab = Status::Todo;
 
     let mut ui = Ui::default();
@@ -168,15 +200,15 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
-            'e' => {
-                let mut file = File::create("todo.file").unwrap();
-                for todo in todos.iter() {
-                    writeln!(file, "TODO: {}", todo);
-                }
-                for done in dones.iter() {
-                    writeln!(file, "DONE: {}", done);
-                }
-            },
+            // 'e' => {
+            //     let mut file = File::create("todo.file").unwrap();
+            //     for todo in todos.iter() {
+            //         writeln!(file, "TODO: {}", todo);
+            //     }
+            //     for done in dones.iter() {
+            //         writeln!(file, "DONE: {}", done);
+            //     }
+            // },
             'w' => match tab {
                     Status::Todo => list_up(&mut todo_curr),
                     Status::Done => list_up(&mut done_curr),
