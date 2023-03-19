@@ -55,16 +55,16 @@ impl Ui {
     }
 }
 
-enum Focus {
+enum Tab {
     Todo,
     Done
 }
 
-impl Focus {
+impl Tab {
     fn toggle(&self) -> Self {
         match self {
-            Focus::Todo => Focus::Done,
-            Focus::Done => Focus::Todo,
+            Tab::Todo => Tab::Done,
+            Tab::Done => Tab::Todo,
         }
     }
 }
@@ -108,7 +108,7 @@ fn main() {
         "Learn C#".to_string()
     ];
 
-    let mut focus = Focus::Todo;
+    let mut focus = Tab::Todo;
 
     let mut ui = Ui::default();
 
@@ -117,7 +117,7 @@ fn main() {
         ui.begin(0, 0);
         {
             match focus {
-                Focus::Todo => {
+                Tab::Todo => {
                     ui.label("TODO: ", REGULAR_PAIR);
                     ui.begin_list(todo_curr);
                     for (index, todo) in todos.iter().enumerate() {
@@ -125,7 +125,7 @@ fn main() {
                     }  
                     ui.end_list();
                 },
-                Focus::Done => {
+                Tab::Done => {
                     ui.label("DONE: ", REGULAR_PAIR);
                     ui.begin_list(done_curr);
                     for(index, done) in dones.iter().enumerate() {
@@ -147,18 +147,18 @@ fn main() {
         match key as u8 as char{
             'q' => quit = true,
             'w' => match focus {
-                    Focus::Todo => list_up(&mut todo_curr),
-                    Focus::Done => list_up(&mut done_curr),
+                    Tab::Todo => list_up(&mut todo_curr),
+                    Tab::Done => list_up(&mut done_curr),
              },
             's' => match focus {
-                Focus::Todo => list_down(&todos, &mut todo_curr),
-                Focus::Done => list_down(&dones, &mut done_curr),
+                Tab::Todo => list_down(&todos, &mut todo_curr),
+                Tab::Done => list_down(&dones, &mut done_curr),
              },
             '\n' => match focus {
-                Focus::Todo => if todo_curr < todos.len() {
+                Tab::Todo => if todo_curr < todos.len() {
                     dones.push(todos.remove(todo_curr));
                 },
-                Focus::Done => if done_curr < dones.len() {
+                Tab::Done => if done_curr < dones.len() {
                     todos.push(dones.remove(done_curr));
                 }
             },
