@@ -16,3 +16,5 @@ $ cargo run todo.file
 |<kbd>q</kbd>|Quit|
 |<kbd>TAB</kbd>|Switch between the TODO and DONE panels|
 |<kbd>Enter</kbd> | Perform an action on the highlighted item|
+|<kbd>Shift+w</kbd> | Move item up|
+|<kbd>Shift+s</kbd> | Move item down|
