@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp;
 
 use ncurses::*;
 
@@ -55,6 +55,34 @@ impl Ui {
     }
 }
 
+enum Focus {
+    Todo,
+    Done
+}
+
+impl Focus {
+    fn toggle(&self) -> Self {
+        match self {
+            Focus::Todo => Focus::Done,
+            Focus::Done => Focus::Todo,
+        }
+    }
+}
+
+fn list_up(list_curr: &mut usize) {
+    if *list_curr > 0 {
+        *list_curr -= 1;
+    }
+}
+
+fn list_down(list: &Vec<String>, list_curr: &mut usize) {
+    if *list_curr + 1 < list.len() {
+        *list_curr += 1;
+   }
+}
+
+
+
 fn main() {
     initscr();
     noecho();
@@ -66,20 +94,21 @@ fn main() {
     
     let mut quit = false;
 
+    let mut todo_curr: usize = 0;
     let mut todos: Vec<String> = vec![
         "Learn Rust".to_string(), 
         "Learn Zig".to_string(),
         "Learn Kubernetes".to_string()
     ];
 
-    let mut todo_curr: usize = 0;
+    let mut done_curr: usize = 0;
     let mut dones = vec![
         "Learn C".to_string(), 
         "Learn C++".to_string(),
         "Learn C#".to_string()
     ];
 
-    let mut done_curr: usize = 0;
+    let mut focus = Focus::Todo;
 
     let mut ui = Ui::default();
 
@@ -87,21 +116,26 @@ fn main() {
         erase();
         ui.begin(0, 0);
         {
-            ui.label("TODO: ", REGULAR_PAIR);
-            ui.begin_list(todo_curr);
-            for (index, todo) in todos.iter().enumerate() {
-                ui.list_element(&format!("- [ ] {}", todo), index);
-            }  
-            ui.end_list();
-            ui.label("-------------------------------------", REGULAR_PAIR);
-
-            ui.label("DONE: ", REGULAR_PAIR);
-            ui.begin_list(0);
-            for(index, done) in dones.iter().enumerate() {
-                ui.list_element(&format!("- [x] {}", done), index + 1);
-
+            match focus {
+                Focus::Todo => {
+                    ui.label("TODO: ", REGULAR_PAIR);
+                    ui.begin_list(todo_curr);
+                    for (index, todo) in todos.iter().enumerate() {
+                        ui.list_element(&format!("- [ ] {}", todo), index);
+                    }  
+                    ui.end_list();
+                },
+                Focus::Done => {
+                    ui.label("DONE: ", REGULAR_PAIR);
+                    ui.begin_list(done_curr);
+                    for(index, done) in dones.iter().enumerate() {
+                        ui.list_element(&format!("- [x] {}", done), index);
+        
+                    }
+                    ui.end_list();
+                }
             }
-            ui.end_list();
+
         }
 
         ui.end();
@@ -112,19 +146,28 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
-            'w' => if todo_curr > 0 {
-                todo_curr -= 1;
-            },
-            's' => if todo_curr + 1 < todos.len() {
-                 todo_curr = min(todo_curr + 1, todos.len() -1)
-            },
-            '\n' => {
-                //dones.push(todos[todo_curr].clone());
-                if (todo_curr < todos.len()) {
+            'w' => match focus {
+                    Focus::Todo => list_up(&mut todo_curr),
+                    Focus::Done => list_up(&mut done_curr),
+             },
+            's' => match focus {
+                Focus::Todo => list_down(&todos, &mut todo_curr),
+                Focus::Done => list_down(&dones, &mut done_curr),
+             },
+            '\n' => match focus {
+                Focus::Todo => if todo_curr < todos.len() {
                     dones.push(todos.remove(todo_curr));
+                },
+                Focus::Done => if done_curr < dones.len() {
+                    todos.push(dones.remove(done_curr));
                 }
+            },
+            '\t' => {
+                focus = focus.toggle();
+            },
+            _ => {
+                //todos.push(format!("{} ", key));
             }
-            _ => {}
         }
     }
     endwin();
