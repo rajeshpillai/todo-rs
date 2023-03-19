@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use ncurses::*;
 
 const REGULAR_PAIR: i16 = 0;
@@ -45,9 +47,7 @@ fn main() {
             'w' => if todo_curr > 0 {
                 todo_curr -= 1;
             },
-            's' => if todo_curr < todos.len() - 1 {
-                todo_curr += 1;
-            },
+            's' => todo_curr = min(todo_curr + 1, todos.len() -1),
             _ => {}
         }
     }
