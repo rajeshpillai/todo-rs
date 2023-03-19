@@ -84,6 +84,7 @@ struct Ui{
     layouts: Vec<Layout>
 }
 
+
 impl Ui {
     fn begin(&mut self, pos: Vec2, kind: LayoutKind) {
         assert!(self.layouts.is_empty());
@@ -111,8 +112,11 @@ impl Ui {
             .add_widget(layout.size);
     }
 
-    fn label(&mut self, text: &str, pair: i16) {
-        let layout = self.layouts.last_mut().expect("Trying to render label outside of any layout");
+    fn label_fixed_width(&mut self, text: &str, width: i32, pair: i16) {
+        let layout = self
+            .layouts
+            .last_mut()
+            .expect("Trying to render label outside of any layout");
 
         let pos = layout.available_pos();
 
@@ -120,12 +124,17 @@ impl Ui {
         attron(COLOR_PAIR(pair));
         addstr(text);
         attroff(COLOR_PAIR(pair));
-        layout.add_widget(Vec2::new(text.len() as i32, 1));
+        layout.add_widget(Vec2::new(width, 1));
+    }
+
+    fn label(&mut self, text: &str, pair: i16) {
+        self.label_fixed_width(text, text.len() as i32, pair);
     }
 
     fn end(&mut self) {
-        self.layouts.pop()
-            .expect("Unbalanced UI::begin() and UI::end()");
+        self.layouts
+            .pop()
+            .expect("Unbalanced UI::begin() and UI::end() calls");
     }
 }
 
