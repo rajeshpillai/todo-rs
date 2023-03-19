@@ -1,5 +1,3 @@
-use std::cmp;
-
 use ncurses::*;
 
 const REGULAR_PAIR: i16 = 0;
@@ -108,7 +106,7 @@ fn main() {
         "Learn C#".to_string()
     ];
 
-    let mut focus = Tab::Todo;
+    let mut tab = Tab::Todo;
 
     let mut ui = Ui::default();
 
@@ -116,9 +114,10 @@ fn main() {
         erase();
         ui.begin(0, 0);
         {
-            match focus {
+            match tab {
                 Tab::Todo => {
                     ui.label("[TODO] DONE ", REGULAR_PAIR);
+                    ui.label("------------", REGULAR_PAIR);
                     ui.begin_list(todo_curr);
                     for (index, todo) in todos.iter().enumerate() {
                         ui.list_element(&format!("- [ ] {}", todo), index);
@@ -127,6 +126,8 @@ fn main() {
                 },
                 Tab::Done => {
                     ui.label(" TODO [DONE]", REGULAR_PAIR);
+                    ui.label("------------", REGULAR_PAIR);
+
                     ui.begin_list(done_curr);
                     for(index, done) in dones.iter().enumerate() {
                         ui.list_element(&format!("- [x] {}", done), index);
@@ -146,24 +147,34 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
-            'w' => match focus {
+            'w' => match tab {
                     Tab::Todo => list_up(&mut todo_curr),
                     Tab::Done => list_up(&mut done_curr),
              },
-            's' => match focus {
+            's' => match tab {
                 Tab::Todo => list_down(&todos, &mut todo_curr),
                 Tab::Done => list_down(&dones, &mut done_curr),
              },
-            '\n' => match focus {
-                Tab::Todo => if todo_curr < todos.len() {
-                    dones.push(todos.remove(todo_curr));
+            '\n' => match tab {
+                Tab::Todo => {
+                    if todo_curr < todos.len() {
+                        dones.push(todos.remove(todo_curr));
+                        if todo_curr >= todos.len() && todos.len() > 0 {
+                            todo_curr = todos.len() -1;
+                        }    
+                    }
                 },
-                Tab::Done => if done_curr < dones.len() {
-                    todos.push(dones.remove(done_curr));
+                Tab::Done => {
+                    if done_curr < dones.len() {
+                        todos.push(dones.remove(done_curr));
+                        if done_curr >= dones.len() && dones.len() > 0 {
+                            done_curr = dones.len() -1;
+                        }
+                    }
                 }
             },
             '\t' => {
-                focus = focus.toggle();
+                tab = tab.toggle();
             },
             _ => {
                 //todos.push(format!("{} ", key));
