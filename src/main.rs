@@ -18,7 +18,7 @@ fn main() {
         "Learn Kubernetes"
     ];
 
-    let todo_curr: usize = 0;
+    let mut todo_curr: usize = 0;
 
     while !quit {
         for (index, todo) in todos.iter().enumerate() {
@@ -41,6 +41,12 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
+            'w' => if todo_curr > 0 {
+                todo_curr -= 1;
+            },
+            's' => if todo_curr < todos.len() - 1 {
+                todo_curr += 1;
+            },
             _ => {}
         }
     }
