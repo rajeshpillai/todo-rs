@@ -84,6 +84,7 @@ fn main() {
     let mut ui = Ui::default();
 
     while !quit {
+        erase();
         ui.begin(0, 0);
         {
             ui.label("TODO: ", REGULAR_PAIR);
