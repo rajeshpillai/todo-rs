@@ -86,7 +86,7 @@ struct Ui{
 }
 
 impl Ui {
-    fn begin(&mut self, pos: Vec2) {
+    fn begin(&mut self, pos: Vec2, kind: LayoutKind) {
         assert!(self.layouts.is_empty());
         self.layouts.push(Layout {
             kind: LayoutKind::Vert,
@@ -210,25 +210,6 @@ fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
 // TODO: undo system
 // TODO: save the state on SIGINT
 
-// fn main() {
-//     let mut ui = Ui::default();
-//     ui.begin_layout(LayoutKind::Horz);
-//     {
-//         ui.begin_layout(LayoutKind::Vert);
-//         for i in 0..5 {
-//             ui.label(&format!("label {}",i), REGULAR_PAIR);
-//         }
-//         ui.end_layout();
-        
-//         ui.begin_layout(LayoutKind::Vert);
-//         for i in 0..5 {
-//             ui.label(&format!("label {}",i), REGULAR_PAIR);
-//         }
-//         ui.end_layout()
-//     }
-//     ui.end_layout();
-// }
-
 fn main() {
     let mut args = env::args();
     args.next().unwrap();
@@ -264,39 +245,30 @@ fn main() {
 
     while !quit {
         erase();
-        ui.begin(Vec2::new(0,0));
+        ui.begin(Vec2::new(0,0), LayoutKind::Horz);
         {
-            match tab {
-                Status::Todo => {
-                    ui.label("[TODO] DONE ", REGULAR_PAIR);
-                    ui.label("------------", REGULAR_PAIR);
-                    for (index, todo) in todos.iter().enumerate() {
-                        ui.label(&format!("- [ ] {}", todo), 
-                            if index == todo_curr {
-                                HIGHLIGHT_PAIR
-                            } else {
-                                REGULAR_PAIR
-                            });
-                    }  
-                },
-                Status::Done => {
-                    ui.label(" TODO [DONE]", REGULAR_PAIR);
-                    ui.label("------------", REGULAR_PAIR);
+            ui.label("TODO ", REGULAR_PAIR);
+            ui.label("------------", REGULAR_PAIR);
+            for (index, todo) in todos.iter().enumerate() {
+                ui.label(&format!("- [ ] {}", todo), 
+                    if index == todo_curr {
+                        HIGHLIGHT_PAIR
+                    } else {
+                        REGULAR_PAIR
+                    });
+            }  
+            ui.label(" DONE", REGULAR_PAIR);
+            ui.label("------------", REGULAR_PAIR);
 
-                    for(index, done) in dones.iter().enumerate() {
-                        ui.label(&format!("- [x] {}", done), 
-                        if index == done_curr {
-                            HIGHLIGHT_PAIR
-                        } else {
-                            REGULAR_PAIR
-                        });
-        
-                    }
-                }
+            for(index, done) in dones.iter().enumerate() {
+                ui.label(&format!("- [x] {}", done), 
+                if index == done_curr {
+                    HIGHLIGHT_PAIR
+                } else {
+                    REGULAR_PAIR
+                });
             }
-
         }
-
         ui.end();
         
         refresh();
