@@ -1,6 +1,6 @@
 use ncurses::*;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, Write, BufRead};
 use std::env;
 use std::process;
 
@@ -108,13 +108,37 @@ fn list_transfer(list_dst: &mut Vec<String>, list_src: &mut Vec<String>, list_sr
     }
 }
 
+fn load_state(todos: &mut Vec<String>, dones: &mut Vec<String>, file_path: &str) {
+    let file = File::open(file_path.clone()).unwrap();   
+    for (index, line) in io::BufReader::new(file).lines().enumerate() {
+        match parse_item(&line.unwrap()) {
+            Some((Status::Todo, title)) => todos.push(title.to_string()),
+            Some((Status::Done, title)) => dones.push(title.to_string()),
+            None => {
+                eprintln!("{}:{}: ERROR:  ill-formed item line", file_path, index + 1);
+                process::exit(1);
+            }
+        }
+    }    
+}
+
+fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
+    let mut file = File::create(file_path).unwrap();
+    for todo in todos.iter() {
+        writeln!(file, "TODO: {}", todo).unwrap();
+    }
+    for done in dones.iter() {
+        writeln!(file, "DONE: {}", done).unwrap();
+    }
+}
+
 // TODO: persist the state of the application
 // TODO: add new items to TODO
 // TODO: delete items
 // TODO: edit the items
 // TODO: keep track of date when the item was DONE
 // TODO: undo system
-
+// TODO: save the state on SIGINT
 
 fn main() {
     let mut args = env::args();
@@ -134,21 +158,7 @@ fn main() {
     let mut dones = Vec::<String>::new();
     let mut done_curr: usize = 0;
         
-    {
-        let file = File::open(file_path.clone()).unwrap();   
-        for (index, line) in io::BufReader::new(file).lines().enumerate() {
-            match parse_item(&line.unwrap()) {
-                Some((Status::Todo, title)) => todos.push(title.to_string()),
-                Some((Status::Done, title)) => dones.push(title.to_string()),
-                None => {
-                    eprintln!("{}:{}: ERROR:  ill-formed item line", file_path, index + 1);
-                    process::exit(1);
-                }
-            }
-        }    
-    }
-
-    // process::exit(0);
+    load_state(&mut todos, &mut dones, &file_path);
 
     initscr();
     noecho();
@@ -200,15 +210,6 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
-            // 'e' => {
-            //     let mut file = File::create("todo.file").unwrap();
-            //     for todo in todos.iter() {
-            //         writeln!(file, "TODO: {}", todo);
-            //     }
-            //     for done in dones.iter() {
-            //         writeln!(file, "DONE: {}", done);
-            //     }
-            // },
             'w' => match tab {
                     Status::Todo => list_up(&mut todo_curr),
                     Status::Done => list_up(&mut done_curr),
@@ -229,5 +230,7 @@ fn main() {
             }
         }
     }
+
+    save_state(&todos, &dones, &file_path);
     endwin();
 }
