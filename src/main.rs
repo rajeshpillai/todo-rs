@@ -8,7 +8,6 @@ use std::ops::{Add, Mul};
 const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHT_PAIR: i16 = 1;
 
-type Id = usize;
 
 #[derive(Default, Copy, Clone)]
 struct Vec2 {
@@ -89,7 +88,7 @@ impl Ui {
     fn begin(&mut self, pos: Vec2, kind: LayoutKind) {
         assert!(self.layouts.is_empty());
         self.layouts.push(Layout {
-            kind: LayoutKind::Vert,
+            kind,
             pos,
             size: Vec2::new(0,0)
         }); 
@@ -106,7 +105,10 @@ impl Ui {
     }
 
     fn end_layout(&mut self) {
-        self.layouts.pop().expect("Unbalanced UI::begin_layout() and UI::end_layout()");
+        let layout = self.layouts.pop()
+            .expect("Unbalanced UI::begin_layout() and UI::end_layout()");
+        self.layouts.last_mut().expect("Unbalanced Ui::begin_layout() and Ui::end_layout() calls.")
+            .add_widget(layout.size);
     }
 
     fn label(&mut self, text: &str, pair: i16) {
@@ -127,7 +129,7 @@ impl Ui {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Status {
     Todo,
     Done
@@ -247,27 +249,33 @@ fn main() {
         erase();
         ui.begin(Vec2::new(0,0), LayoutKind::Horz);
         {
-            ui.label("TODO ", REGULAR_PAIR);
-            ui.label("------------", REGULAR_PAIR);
-            for (index, todo) in todos.iter().enumerate() {
-                ui.label(&format!("- [ ] {}", todo), 
-                    if index == todo_curr {
-                        HIGHLIGHT_PAIR
-                    } else {
-                        REGULAR_PAIR
-                    });
+            ui.begin_layout(LayoutKind::Vert);
+            {
+                ui.label("TODO:", REGULAR_PAIR);
+                for (index, todo) in todos.iter().enumerate() {
+                    ui.label(&format!("- [ ] {}", todo), 
+                        if index == todo_curr && tab == Status::Todo {
+                            HIGHLIGHT_PAIR
+                        } else {
+                            REGULAR_PAIR
+                        });
+                }
             }  
-            ui.label(" DONE", REGULAR_PAIR);
-            ui.label("------------", REGULAR_PAIR);
+            ui.end_layout();
 
-            for(index, done) in dones.iter().enumerate() {
-                ui.label(&format!("- [x] {}", done), 
-                if index == done_curr {
-                    HIGHLIGHT_PAIR
-                } else {
-                    REGULAR_PAIR
-                });
+            ui.begin_layout(LayoutKind::Vert);
+            {
+                ui.label("DONE:", REGULAR_PAIR);
+                for (index, done) in dones.iter().enumerate() {
+                    ui.label(&format!("- [x] {}", done), 
+                        if index == done_curr && tab == Status::Done {
+                            HIGHLIGHT_PAIR
+                        } else {
+                            REGULAR_PAIR
+                        });
+                }
             }
+            ui.end_layout();
         }
         ui.end();
         
