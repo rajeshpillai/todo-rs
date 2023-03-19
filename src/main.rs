@@ -251,11 +251,13 @@ fn main() {
         {
             ui.begin_layout(LayoutKind::Vert);
             {
-                if tab == Status::Todo {
-                    ui.label("[TODO]", REGULAR_PAIR);
-                } else {
-                    ui.label(" TODO ", REGULAR_PAIR);
-                }
+                ui.label("TODO",
+                    if tab == Status::Todo {
+                        HIGHLIGHT_PAIR
+                    } else {
+                        REGULAR_PAIR
+                    });
+
                 for (index, todo) in todos.iter().enumerate() {
                     ui.label(&format!("- [ ] {}", todo), 
                         if index == todo_curr && tab == Status::Todo {
@@ -269,11 +271,13 @@ fn main() {
 
             ui.begin_layout(LayoutKind::Vert);
             {
-                if tab == Status::Done {
-                    ui.label("[DONE]", REGULAR_PAIR);
-                } else {
-                    ui.label(" DONE ", REGULAR_PAIR);
-                }
+                ui.label("DONE", 
+                    if tab == Status::Done {
+                        HIGHLIGHT_PAIR
+                    } else {
+                        REGULAR_PAIR
+                    });
+
                 for (index, done) in dones.iter().enumerate() {
                     ui.label(&format!("- [x] {}", done), 
                         if index == done_curr && tab == Status::Done {
