@@ -27,7 +27,7 @@ impl Ui {
 
    
 
-    fn list_element(&mut self, label: &str, id: Id) {
+    fn list_element(&mut self, label: &str, id: Id) -> bool {
         let id_curr = self.list_curr.expect("Not allowed to create list elements outside of a list!");
         self.label( label,  {
             if id_curr == id {
@@ -36,6 +36,7 @@ impl Ui {
                 REGULAR_PAIR
             }
         });
+        return false;
     }
 
     fn label(&mut self, text: &str, pair: i16) {
@@ -65,14 +66,14 @@ fn main() {
     
     let mut quit = false;
 
-    let todos: Vec<String> = vec![
+    let mut todos: Vec<String> = vec![
         "Learn Rust".to_string(), 
         "Learn Zig".to_string(),
         "Learn Kubernetes".to_string()
     ];
 
     let mut todo_curr: usize = 0;
-    let dones = vec![
+    let mut dones = vec![
         "Learn C".to_string(), 
         "Learn C++".to_string(),
         "Learn C#".to_string()
@@ -113,7 +114,15 @@ fn main() {
             'w' => if todo_curr > 0 {
                 todo_curr -= 1;
             },
-            's' => todo_curr = min(todo_curr + 1, todos.len() -1),
+            's' => if todo_curr + 1 < todos.len() {
+                 todo_curr = min(todo_curr + 1, todos.len() -1)
+            },
+            '\n' => {
+                //dones.push(todos[todo_curr].clone());
+                if (todo_curr < todos.len()) {
+                    dones.push(todos.remove(todo_curr));
+                }
+            }
             _ => {}
         }
     }
