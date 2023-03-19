@@ -256,6 +256,11 @@ fn main() {
 
     while !quit {
         erase();
+        let mut x = 0;
+        let mut y = 0;
+
+        getmaxyx(stdscr(), &mut y, &mut x);
+
         ui.begin(Vec2::new(0,0), LayoutKind::Horz);
         {
             ui.begin_layout(LayoutKind::Vert);
@@ -268,7 +273,9 @@ fn main() {
                     });
 
                 for (index, todo) in todos.iter().enumerate() {
-                    ui.label(&format!("- [ ] {}", todo), 
+                    ui.label_fixed_width(
+                        &format!("- [ ] {}", todo), 
+                        x / 2,
                         if index == todo_curr && tab == Status::Todo {
                             HIGHLIGHT_PAIR
                         } else {
@@ -288,7 +295,9 @@ fn main() {
                     });
 
                 for (index, done) in dones.iter().enumerate() {
-                    ui.label(&format!("- [x] {}", done), 
+                    ui.label_fixed_width(
+                        &format!("- [x] {}", done), 
+                        x / 2,
                         if index == done_curr && tab == Status::Done {
                             HIGHLIGHT_PAIR
                         } else {
