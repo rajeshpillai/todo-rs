@@ -19,3 +19,4 @@ $ cargo run todo.file
 |<kbd>Shift+w</kbd> | Move item up|
 |<kbd>Shift+s</kbd> | Move item down|
 |<kbd>g and Shift+g</kbd> | Move to top and bottom of list|
+|<kbd>d</kbd> | Delete item|

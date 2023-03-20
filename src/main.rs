@@ -206,6 +206,15 @@ fn list_last(list: &[String], list_curr: &mut usize) {
     }
 }
 
+fn list_delete(list: &mut Vec<String>, list_curr: &mut usize) {
+    if *list_curr < list.len() {
+        list.remove(*list_curr);
+        if *list_curr >= list.len() && !list.is_empty() {
+            *list_curr = list.len() - 1;
+        }
+    }
+}
+
 fn list_transfer(list_dst: &mut Vec<String>, list_src: &mut Vec<String>, list_src_curr: &mut usize) {
     if *list_src_curr < list_src.len() {
         list_dst.push(list_src.remove(*list_src_curr));
@@ -242,9 +251,9 @@ fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
 // TODO: persist the state of the application
 // TODO: move items up and down (reorder)
 // TODO: keep track of date when the item was DONE
-// TODO: implement jumping to first and last element*
+// TODO: implement jumping to first and last element
+// TODO: delete todo item*
 // TODO: add new items to TODO
-// TODO: delete items
 // TODO: edit the items
 // TODO: undo system
 // TODO: save the state on SIGINT
@@ -372,6 +381,10 @@ fn main() {
                 Status::Todo => list_down(&todos, &mut todo_curr),
                 Status::Done => list_down(&dones, &mut done_curr),
              },
+             'd' => match panel {
+                Status::Todo => list_delete(&mut todos, &mut todo_curr),
+                Status::Done => list_delete(&mut dones, &mut done_curr),
+            },
             '\n' => match panel {
                 Status::Todo => list_transfer(&mut dones, &mut todos, &mut todo_curr),
                 Status::Done => list_transfer(&mut todos, &mut dones, &mut done_curr)
