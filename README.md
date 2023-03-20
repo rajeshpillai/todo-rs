@@ -18,3 +18,4 @@ $ cargo run todo.file
 |<kbd>Enter</kbd> | Perform an action on the highlighted item|
 |<kbd>Shift+w</kbd> | Move item up|
 |<kbd>Shift+s</kbd> | Move item down|
+|<kbd>g and Shift+g</kbd> | Move to top and bottom of list|

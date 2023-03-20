@@ -1,0 +1,20 @@
+{
+  "name": "todo-rs",
+  "version": "1.0.0",
+  "description": "Simple Interactive Console Todo App in Rust",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx nodemon --watch src -e rs --exec cargo build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rajeshpillai/todo-rs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rajeshpillai/todo-rs/issues"
+  },
+  "homepage": "https://github.com/rajeshpillai/todo-rs#readme"
+}

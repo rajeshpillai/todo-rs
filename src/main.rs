@@ -194,6 +194,18 @@ fn list_down(list: &Vec<String>, list_curr: &mut usize) {
    }
 }
 
+fn list_first(list_curr: &mut usize) {
+    if *list_curr > 0 {
+        *list_curr = 0;
+    }
+}
+
+fn list_last(list: &[String], list_curr: &mut usize) {
+    if list.len() > 0 {
+        *list_curr = list.len() - 1;
+    }
+}
+
 fn list_transfer(list_dst: &mut Vec<String>, list_src: &mut Vec<String>, list_src_curr: &mut usize) {
     if *list_src_curr < list_src.len() {
         list_dst.push(list_src.remove(*list_src_curr));
@@ -228,13 +240,14 @@ fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
 }
 
 // TODO: persist the state of the application
+// TODO: move items up and down (reorder)
+// TODO: keep track of date when the item was DONE
+// TODO: implement jumping to first and last element*
 // TODO: add new items to TODO
 // TODO: delete items
 // TODO: edit the items
-// TODO: keep track of date when the item was DONE
 // TODO: undo system
 // TODO: save the state on SIGINT
-// TODO: move items up and down (reorder)
 
 fn main() {
     let mut args = env::args();
@@ -330,6 +343,7 @@ fn main() {
 
         match key as u8 as char{
             'q' => quit = true,
+           
             'W' => match panel {
                 Status::Todo => list_drag_up(&mut todos, &mut todo_curr),
                 Status::Done => list_drag_up(&mut dones, &mut done_curr),
@@ -339,6 +353,16 @@ fn main() {
                 Status::Todo => list_drag_down(&mut todos, &mut todo_curr),
                 Status::Done => list_drag_down(&mut dones, &mut done_curr),
              },
+           
+            'g' => match panel {
+                Status::Todo => list_first(&mut todo_curr),
+                Status::Done => list_first(&mut done_curr),
+            },
+           
+            'G' => match panel {
+                Status::Todo => list_last(&mut todos, &mut todo_curr),
+                Status::Done => list_last(&mut dones, &mut done_curr),
+            },
 
             'w' => match panel {
                     Status::Todo => list_up(&mut todo_curr),
