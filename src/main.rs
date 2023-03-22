@@ -1,6 +1,6 @@
 use ncurses::*;
 use std::fs::File;
-use std::io::{self, Write, BufRead, ErrorKind};
+use std::io::{self, BufRead, ErrorKind,  Write};
 use std::env;
 use std::process;
 use std::ops::{Add, Mul};
@@ -125,10 +125,6 @@ impl Ui {
         addstr(text);
         attroff(COLOR_PAIR(pair));
         layout.add_widget(Vec2::new(width, 1));
-    }
-
-    fn label(&mut self, text: &str, pair: i16) {
-        self.label_fixed_width(text, text.len() as i32, pair);
     }
 
     fn end(&mut self) {
@@ -282,10 +278,17 @@ fn main() {
 
     match load_state(&mut todos, &mut dones, &file_path) {
         Ok(()) => notification = format!("Loaded file {}", file_path),
-        Err(error) => if error.kind() == ErrorKind::NotFound {
-            notification= format!("New file {}", file_path)
-        } else {
-            panic!("Could not load state from file `{}` : {:?}", file_path, error);
+        // Err(error) => if error.kind() == ErrorKind::NotFound {
+        //     notification= format!("New file {}", file_path)
+        // } else {
+        //     panic!("Could not load state from file `{}` : {:?}", file_path, error);
+        // }
+        Err(error) => {
+            if error.kind() == ErrorKind::NotFound {
+                notification = format!("New file {}", file_path)
+            } else {
+                panic!("Could not load state from file `{}` : {:?}", file_path, error);
+            }
         }
     };
 
