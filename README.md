@@ -1,6 +1,6 @@
 # todo-rs 
 
-Simple Interactive Console Todo App in Rust
+Simple Interactive Console Todo App in Rust. An experimental playground for testing ideas on Immediate TUIs.
 
 ## Quick Start
 
