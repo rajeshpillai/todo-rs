@@ -5,6 +5,9 @@ use std::env;
 use std::process;
 use std::ops::{Add, Mul};
 
+mod ctrlc;
+
+
 const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHT_PAIR: i16 = 1;
 
@@ -257,6 +260,8 @@ fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
 // TODO: save the state on SIGINT
 
 fn main() {
+    ctrlc::init();
+
     let mut args = env::args();
     args.next().unwrap();
 
@@ -295,6 +300,8 @@ fn main() {
 
     initscr();
     noecho();
+    timeout(16); // running in 60 FPS for better UI experience
+
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
     
     start_color();
@@ -306,7 +313,7 @@ fn main() {
 
     let mut ui = Ui::default();
 
-    while !quit {
+    while !quit && !ctrlc::poll() {
         erase();
 
         let mut x = 0;
@@ -316,7 +323,6 @@ fn main() {
         ui.begin(Vec2::new(0, 0), LayoutKind::Vert);
         {
             ui.label_fixed_width(&notification, x, REGULAR_PAIR);
-            notification.clear();
             ui.label_fixed_width("", x, REGULAR_PAIR);
 
             ui.begin_layout(LayoutKind::Horz);
@@ -378,6 +384,10 @@ fn main() {
         refresh();
 
         let key = getch();
+
+        if key != ERR {
+            notification.clear();
+        }
 
         match key as u8 as char{
             'q' => quit = true,
