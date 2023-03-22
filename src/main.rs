@@ -135,8 +135,14 @@ impl Ui {
         layout.add_widget(Vec2::new(width, 1));
     }
 
-    // TODO: Ui::edit_field does not scroll according to the cursor
-    fn edit_field(&mut self, buffer: &mut String, cursor: &mut usize, key_current: &mut Option<i32>, width: i32) {
+    // TODO(#26): Ui::edit_field does not scroll according to the cursor
+    fn edit_field(
+        &mut self,
+        buffer: &mut String,
+        cursor: &mut usize,
+        key_current: &mut Option<i32>,
+        width: i32,
+    ) {
         let layout = self
             .layouts
             .last_mut()
@@ -157,16 +163,22 @@ impl Ui {
                     }
                     *cursor += 1;
                 }
-                constants::KEY_LEFT => if *cursor > 0 {
-                    *cursor -= 1
+                constants::KEY_LEFT => {
+                    if *cursor > 0 {
+                        *cursor -= 1
+                    }
                 }
-                constants::KEY_RIGHT => if *cursor < buffer.len() {
-                    *cursor += 1;
-                }
-                constants::KEY_BACKSPACE => if *cursor > 0 {
-                    *cursor -= 1;
+                constants::KEY_RIGHT => {
                     if *cursor < buffer.len() {
-                        buffer.remove(*cursor);
+                        *cursor += 1;
+                    }
+                }
+                constants::KEY_BACKSPACE => {
+                    if *cursor > 0 {
+                        *cursor -= 1;
+                        if *cursor < buffer.len() {
+                            buffer.remove(*cursor);
+                        }
                     }
                 }
                 constants::KEY_DC => {
@@ -398,17 +410,27 @@ fn main() {
                 {
                     if panel == Status::Todo {
                         ui.label_fixed_width("TODO", x / 2, HIGHLIGHT_PAIR);
-                        // TODO: the item lists don't have a scroll area
+                        // TODO(#27): the item lists don't have a scroll area
                         for (index, todo) in todos.iter_mut().enumerate() {
                             if index == todo_curr {
                                 if editing {
-                                    ui.edit_field(todo, &mut editing_cursor, &mut key_current, x / 2);
+                                    ui.edit_field(
+                                        todo,
+                                        &mut editing_cursor,
+                                        &mut key_current,
+                                        x / 2,
+                                    );
 
-                                    if let Some('\n') = key_current.take().map(|x| x as u8 as char) {
+                                    if let Some('\n') = key_current.take().map(|x| x as u8 as char)
+                                    {
                                         editing = false;
                                     }
                                 } else {
-                                    ui.label_fixed_width(&format!("- [ ] {}", todo), x / 2, HIGHLIGHT_PAIR);
+                                    ui.label_fixed_width(
+                                        &format!("- [ ] {}", todo),
+                                        x / 2,
+                                        HIGHLIGHT_PAIR,
+                                    );
                                     if let Some('r') = key_current.map(|x| x as u8 as char) {
                                         editing = true;
                                         editing_cursor = todo.len();
@@ -416,28 +438,35 @@ fn main() {
                                     }
                                 }
                             } else {
-                                ui.label_fixed_width(&format!("- [ ] {}", todo), x / 2, REGULAR_PAIR);
+                                ui.label_fixed_width(
+                                    &format!("- [ ] {}", todo),
+                                    x / 2,
+                                    REGULAR_PAIR,
+                                );
                             }
                         }
 
                         if let Some(key) = key_current.take() {
                             match key as u8 as char {
-                                'K'  => list_drag_up(&mut todos, &mut todo_curr),
-                                'J'  => list_drag_down(&mut todos, &mut todo_curr),
+                                'K' => list_drag_up(&mut todos, &mut todo_curr),
+                                'J' => list_drag_down(&mut todos, &mut todo_curr),
                                 'i' => {
                                     todos.insert(todo_curr, String::new());
                                     editing_cursor = 0;
                                     editing = true;
                                     notification.push_str("What needs to be done?");
-                                },
-                                'k'  => list_up(&mut todo_curr),
-                                'j'  => list_down(&todos, &mut todo_curr),
-                                'g'  => list_first(&mut todo_curr),
-                                'G'  => list_last(&todos, &mut todo_curr),
+                                }
+                                'd' => {
+                                    notification.push_str("Can't remove items from TODO. Mark it as DONE first.");
+                                }
+                                'k' => list_up(&mut todo_curr),
+                                'j' => list_down(&todos, &mut todo_curr),
+                                'g' => list_first(&mut todo_curr),
+                                'G' => list_last(&todos, &mut todo_curr),
                                 '\n' => {
                                     list_transfer(&mut dones, &mut todos, &mut todo_curr);
                                     notification.push_str("DONE!")
-                                },
+                                }
                                 '\t' => {
                                     panel = panel.toggle();
                                 }
@@ -462,13 +491,23 @@ fn main() {
                         for (index, done) in dones.iter_mut().enumerate() {
                             if index == done_curr {
                                 if editing {
-                                    ui.edit_field(done, &mut editing_cursor, &mut key_current, x / 2);
+                                    ui.edit_field(
+                                        done,
+                                        &mut editing_cursor,
+                                        &mut key_current,
+                                        x / 2,
+                                    );
 
-                                    if let Some('\n') = key_current.take().map(|x| x as u8 as char) {
+                                    if let Some('\n') = key_current.take().map(|x| x as u8 as char)
+                                    {
                                         editing = false;
                                     }
                                 } else {
-                                    ui.label_fixed_width(&format!("- [x] {}", done), x / 2, HIGHLIGHT_PAIR);
+                                    ui.label_fixed_width(
+                                        &format!("- [x] {}", done),
+                                        x / 2,
+                                        HIGHLIGHT_PAIR,
+                                    );
                                     if let Some('r') = key_current.map(|x| x as u8 as char) {
                                         editing = true;
                                         editing_cursor = done.len();
@@ -476,32 +515,34 @@ fn main() {
                                     }
                                 }
                             } else {
-                                ui.label_fixed_width(&format!("- [x] {}", done), x / 2, REGULAR_PAIR);
+                                ui.label_fixed_width(
+                                    &format!("- [x] {}", done),
+                                    x / 2,
+                                    REGULAR_PAIR,
+                                );
                             }
                         }
 
                         if let Some(key) = key_current.take() {
                             match key as u8 as char {
-                                'K'  => list_drag_up(&mut dones, &mut done_curr),
-                                'J'  => list_drag_down(&mut dones, &mut done_curr),
-                                'k'  => list_up(&mut done_curr),
-                                'j'  => list_down(&dones, &mut done_curr),
-                                'g'  => list_first(&mut done_curr),
-                                'G'  => list_last(&dones, &mut done_curr),
-                                'd'  => {
+                                'K' => list_drag_up(&mut dones, &mut done_curr),
+                                'J' => list_drag_down(&mut dones, &mut done_curr),
+                                'k' => list_up(&mut done_curr),
+                                'j' => list_down(&dones, &mut done_curr),
+                                'g' => list_first(&mut done_curr),
+                                'G' => list_last(&dones, &mut done_curr),
+                                'd' => {
                                     list_delete(&mut dones, &mut done_curr);
                                     notification.push_str("Into The Abyss!");
                                 }
                                 '\n' => {
                                     list_transfer(&mut todos, &mut dones, &mut done_curr);
                                     notification.push_str("No, not done yet...")
-                                },
+                                }
                                 '\t' => {
                                     panel = panel.toggle();
                                 }
-                                _ => {
-                                    key_current = Some(key)
-                                }
+                                _ => key_current = Some(key),
                             }
                         }
                     } else {
