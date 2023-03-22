@@ -382,12 +382,12 @@ fn main() {
         match key as u8 as char{
             'q' => quit = true,
            
-            'W' => match panel {
+            'K' => match panel {
                 Status::Todo => list_drag_up(&mut todos, &mut todo_curr),
                 Status::Done => list_drag_up(&mut dones, &mut done_curr),
              },
 
-             'S' => match panel {
+             'J' => match panel {
                 Status::Todo => list_drag_down(&mut todos, &mut todo_curr),
                 Status::Done => list_drag_down(&mut dones, &mut done_curr),
              },
@@ -402,11 +402,11 @@ fn main() {
                 Status::Done => list_last(&dones, &mut done_curr),
             },
 
-            'w' => match panel {
+            'k' => match panel {
                     Status::Todo => list_up(&mut todo_curr),
                     Status::Done => list_up(&mut done_curr),
              },
-            's' => match panel {
+            'j' => match panel {
                 Status::Todo => list_down(&todos, &mut todo_curr),
                 Status::Done => list_down(&dones, &mut done_curr),
              },
