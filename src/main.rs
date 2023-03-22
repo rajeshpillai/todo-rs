@@ -1,4 +1,5 @@
 use ncurses::*;
+use std::cmp;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, ErrorKind, Write};
@@ -20,7 +21,7 @@ impl Add for Vec2 {
     type Output = Vec2;
 
     fn add(self, rhs: Vec2) -> Vec2 {
-        Self {
+        Vec2 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
@@ -30,7 +31,7 @@ impl Add for Vec2 {
 impl Mul for Vec2 {
     type Output = Vec2;
 
-    fn mul(self, rhs: Vec2) -> Self::Output {
+    fn mul(self, rhs: Vec2) -> Vec2 {
         Vec2 {
             x: self.x * rhs.x,
             y: self.y * rhs.y,
@@ -69,10 +70,10 @@ impl Layout {
         match self.kind {
             Horz => {
                 self.size.x += size.x;
-                self.size.y = std::cmp::max(self.size.y, size.y);
+                self.size.y = cmp::max(self.size.y, size.y);
             }
             Vert => {
-                self.size.x = std::cmp::max(self.size.x, size.x);
+                self.size.x = cmp::max(self.size.x, size.x);
                 self.size.y += size.y;
             }
         }
@@ -91,27 +92,27 @@ impl Ui {
             kind,
             pos,
             size: Vec2::new(0, 0),
-        });
+        })
     }
 
     fn begin_layout(&mut self, kind: LayoutKind) {
         let layout = self
             .layouts
             .last()
-            .expect("Can't create layout outside of Ui::begin() and Ui::end()");
+            .expect("Can't create a layout outside of Ui::begin() and Ui::end()");
         let pos = layout.available_pos();
         self.layouts.push(Layout {
             kind,
             pos,
             size: Vec2::new(0, 0),
-        })
+        });
     }
 
     fn end_layout(&mut self) {
         let layout = self
             .layouts
             .pop()
-            .expect("Unbalanced UI::begin_layout() and UI::end_layout()");
+            .expect("Unbalanced Ui::begin_layout() and Ui::end_layout() calls.");
         self.layouts
             .last_mut()
             .expect("Unbalanced Ui::begin_layout() and Ui::end_layout() calls.")
@@ -119,24 +120,30 @@ impl Ui {
     }
 
     fn label_fixed_width(&mut self, text: &str, width: i32, pair: i16) {
+        // TODO(#17): Ui::label_fixed_width() does not elide the text when width < text.len()
         let layout = self
             .layouts
             .last_mut()
             .expect("Trying to render label outside of any layout");
-
         let pos = layout.available_pos();
 
         mv(pos.y, pos.x);
         attron(COLOR_PAIR(pair));
         addstr(text);
         attroff(COLOR_PAIR(pair));
+
         layout.add_widget(Vec2::new(width, 1));
+    }
+
+    #[allow(dead_code)]
+    fn label(&mut self, text: &str, pair: i16) {
+        self.label_fixed_width(text, text.len() as i32, pair);
     }
 
     fn end(&mut self) {
         self.layouts
             .pop()
-            .expect("Unbalanced UI::begin() and UI::end() calls");
+            .expect("Unbalanced Ui::begin() and Ui::end() calls.");
     }
 }
 
@@ -156,18 +163,13 @@ impl Status {
 }
 
 fn parse_item(line: &str) -> Option<(Status, &str)> {
-    let todo_prefix = "TODO: ";
-    let done_prefix = "DONE: ";
-
-    if line.starts_with(todo_prefix) {
-        return Some((Status::Todo, &line[todo_prefix.len()..]));
-    }
-
-    if line.starts_with(done_prefix) {
-        return Some((Status::Done, &line[done_prefix.len()..]));
-    }
-
-    return None;
+    let todo_item = line
+        .strip_prefix("TODO: ")
+        .map(|title| (Status::Todo, title));
+    let done_item = line
+        .strip_prefix("DONE: ")
+        .map(|title| (Status::Done, title));
+    todo_item.or(done_item)
 }
 
 fn list_drag_up(list: &mut [String], list_curr: &mut usize) {
@@ -190,7 +192,7 @@ fn list_up(list_curr: &mut usize) {
     }
 }
 
-fn list_down(list: &Vec<String>, list_curr: &mut usize) {
+fn list_down(list: &[String], list_curr: &mut usize) {
     if *list_curr + 1 < list.len() {
         *list_curr += 1;
     }
@@ -208,15 +210,6 @@ fn list_last(list: &[String], list_curr: &mut usize) {
     }
 }
 
-fn list_delete(list: &mut Vec<String>, list_curr: &mut usize) {
-    if *list_curr < list.len() {
-        list.remove(*list_curr);
-        if *list_curr >= list.len() && !list.is_empty() {
-            *list_curr = list.len() - 1;
-        }
-    }
-}
-
 fn list_transfer(
     list_dst: &mut Vec<String>,
     list_src: &mut Vec<String>,
@@ -224,8 +217,17 @@ fn list_transfer(
 ) {
     if *list_src_curr < list_src.len() {
         list_dst.push(list_src.remove(*list_src_curr));
-        if *list_src_curr >= list_src.len() && list_src.len() > 0 {
+        if *list_src_curr >= list_src.len() && !list_src.is_empty() {
             *list_src_curr = list_src.len() - 1;
+        }
+    }
+}
+
+fn list_delete(list: &mut Vec<String>, list_curr: &mut usize) {
+    if *list_curr < list.len() {
+        list.remove(*list_curr);
+        if *list_curr >= list.len() && !list.is_empty() {
+            *list_curr = list.len() - 1;
         }
     }
 }
@@ -237,7 +239,7 @@ fn load_state(todos: &mut Vec<String>, dones: &mut Vec<String>, file_path: &str)
             Some((Status::Todo, title)) => todos.push(title.to_string()),
             Some((Status::Done, title)) => dones.push(title.to_string()),
             None => {
-                eprintln!("{}:{}: ERROR:  ill-formed item line", file_path, index + 1);
+                eprintln!("{}:{}: ERROR: ill-formed item line", file_path, index + 1);
                 process::exit(1);
             }
         }
@@ -245,7 +247,7 @@ fn load_state(todos: &mut Vec<String>, dones: &mut Vec<String>, file_path: &str)
     Ok(())
 }
 
-fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
+fn save_state(todos: &[String], dones: &[String], file_path: &str) {
     let mut file = File::create(file_path).unwrap();
     for todo in todos.iter() {
         writeln!(file, "TODO: {}", todo).unwrap();
@@ -255,16 +257,12 @@ fn save_state(todos: &Vec<String>, dones: &Vec<String>, file_path: &str) {
     }
 }
 
-// TODO: persist the state of the application
-// TODO: move items up and down (reorder)
-// TODO: keep track of date when the item was DONE
-// TODO: implement jumping to first and last element
-// TODO: delete todo item
-// TODO: allow non existing input files via command line and add notification
-// TODO: add new items to TODO
-// TODO: edit the items
-// TODO: undo system
-// TODO: save the state on SIGINT
+// TODO(#2): add new items to TODO
+// TODO(#3): delete items
+// TODO(#4): edit the items
+// TODO(#5): keep track of date when the item was DONE
+// TODO(#6): undo system
+// TODO(#12): save the state on SIGINT
 
 fn main() {
     ctrlc::init();
@@ -286,21 +284,16 @@ fn main() {
     let mut dones = Vec::<String>::new();
     let mut done_curr: usize = 0;
 
-    let mut notification;
+    let mut notification: String;
 
     match load_state(&mut todos, &mut dones, &file_path) {
         Ok(()) => notification = format!("Loaded file {}", file_path),
-        // Err(error) => if error.kind() == ErrorKind::NotFound {
-        //     notification= format!("New file {}", file_path)
-        // } else {
-        //     panic!("Could not load state from file `{}` : {:?}", file_path, error);
-        // }
         Err(error) => {
             if error.kind() == ErrorKind::NotFound {
                 notification = format!("New file {}", file_path)
             } else {
                 panic!(
-                    "Could not load state from file `{}` : {:?}",
+                    "Could not load state from file `{}`: {:?}",
                     file_path, error
                 );
             }
@@ -309,8 +302,7 @@ fn main() {
 
     initscr();
     noecho();
-    timeout(16); // running in 60 FPS for better UI experience
-
+    timeout(16); // running in 60 FPS for better gaming experience
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
 
     start_color();
@@ -321,8 +313,13 @@ fn main() {
     let mut panel = Status::Todo;
 
     let mut ui = Ui::default();
-
+    let mut key_current = None;
     while !quit && !ctrlc::poll() {
+        if let Some('q') = key_current.map(|x| x as u8 as char) {
+            quit = true;
+            key_current = None;
+        }
+
         erase();
 
         let mut x = 0;
@@ -338,50 +335,90 @@ fn main() {
             {
                 ui.begin_layout(LayoutKind::Vert);
                 {
-                    ui.label_fixed_width(
-                        "TODO",
-                        x / 2,
-                        if panel == Status::Todo {
-                            HIGHLIGHT_PAIR
-                        } else {
-                            REGULAR_PAIR
-                        },
-                    );
-                    for (index, todo) in todos.iter().enumerate() {
-                        ui.label_fixed_width(
-                            &format!("- [ ] {}", todo),
-                            x / 2,
-                            if index == todo_curr && panel == Status::Todo {
-                                HIGHLIGHT_PAIR
-                            } else {
-                                REGULAR_PAIR
-                            },
-                        );
+                    if panel == Status::Todo {
+                        ui.label_fixed_width("TODO", x / 2, HIGHLIGHT_PAIR);
+                        for (index, todo) in todos.iter().enumerate() {
+                            ui.label_fixed_width(
+                                &format!("- [ ] {}", todo),
+                                x / 2,
+                                if index == todo_curr {
+                                    HIGHLIGHT_PAIR
+                                } else {
+                                    REGULAR_PAIR
+                                });
+                        }
+
+                        if let Some(key) = key_current {
+                            match key as u8 as char {
+                                'K'  => list_drag_up(&mut todos, &mut todo_curr),
+                                'J'  => list_drag_down(&mut todos, &mut todo_curr),
+                                'k'  => list_up(&mut todo_curr),
+                                'j'  => list_down(&todos, &mut todo_curr),
+                                'g'  => list_first(&mut todo_curr),
+                                'G'  => list_last(&todos, &mut todo_curr),
+                                '\n' => {
+                                    list_transfer(&mut dones, &mut todos, &mut todo_curr);
+                                    notification.push_str("DONE!")
+                                },
+                                '\t' => {
+                                    panel = panel.toggle();
+                                }
+                                _ => {}
+                            }
+                            key_current = None;
+                        }
+                    } else {
+                        ui.label_fixed_width("TODO", x / 2, REGULAR_PAIR);
+                        for todo in todos.iter() {
+                            ui.label_fixed_width(&format!("- [ ] {}", todo), x / 2, REGULAR_PAIR);
+                        }
                     }
                 }
                 ui.end_layout();
 
                 ui.begin_layout(LayoutKind::Vert);
                 {
-                    ui.label_fixed_width(
-                        "DONE",
-                        x / 2,
-                        if panel == Status::Done {
-                            HIGHLIGHT_PAIR
-                        } else {
-                            REGULAR_PAIR
-                        },
-                    );
-                    for (index, done) in dones.iter().enumerate() {
-                        ui.label_fixed_width(
-                            &format!("- [x] {}", done),
-                            x / 2,
-                            if index == done_curr && panel == Status::Done {
-                                HIGHLIGHT_PAIR
-                            } else {
-                                REGULAR_PAIR
-                            },
-                        );
+                    if panel == Status::Done {
+                        ui.label_fixed_width("DONE", x / 2, HIGHLIGHT_PAIR);
+                        for (index, done) in dones.iter().enumerate() {
+                            ui.label_fixed_width(
+                                &format!("- [x] {}", done),
+                                x / 2,
+                                if index == done_curr {
+                                    HIGHLIGHT_PAIR
+                                } else {
+                                    REGULAR_PAIR
+                                });
+                        }
+
+                        if let Some(key) = key_current {
+                            match key as u8 as char {
+                                'K'  => list_drag_up(&mut dones, &mut done_curr),
+                                'J'  => list_drag_down(&mut dones, &mut done_curr),
+                                'k'  => list_up(&mut done_curr),
+                                'j'  => list_down(&dones, &mut done_curr),
+                                'g'  => list_first(&mut done_curr),
+                                'G'  => list_last(&dones, &mut done_curr),
+                                'd'  => {
+                                    list_delete(&mut dones, &mut done_curr);
+                                    notification.push_str("Into The Abyss!");
+                                }
+                                '\n' => {
+                                    list_transfer(&mut todos, &mut dones, &mut done_curr);
+                                    notification.push_str("No, not done yet...")
+                                },
+                                '\t' => {
+                                    panel = panel.toggle();
+                                }
+                                _ => {}
+                            }
+                            key_current = None;
+                        }
+                    } else {
+                        ui.label_fixed_width("DONE", x / 2, REGULAR_PAIR);
+                        for done in dones.iter() {
+                            ui.label_fixed_width(&format!("- [x] {}", done), x / 2, REGULAR_PAIR);
+                        }
                     }
                 }
                 ui.end_layout();
@@ -393,66 +430,14 @@ fn main() {
         refresh();
 
         let key = getch();
-
         if key != ERR {
             notification.clear();
-        }
-
-        match key as u8 as char {
-            'q' => quit = true,
-
-            'K' => match panel {
-                Status::Todo => list_drag_up(&mut todos, &mut todo_curr),
-                Status::Done => list_drag_up(&mut dones, &mut done_curr),
-            },
-
-            'J' => match panel {
-                Status::Todo => list_drag_down(&mut todos, &mut todo_curr),
-                Status::Done => list_drag_down(&mut dones, &mut done_curr),
-            },
-
-            'g' => match panel {
-                Status::Todo => list_first(&mut todo_curr),
-                Status::Done => list_first(&mut done_curr),
-            },
-
-            'G' => match panel {
-                Status::Todo => list_last(&todos, &mut todo_curr),
-                Status::Done => list_last(&dones, &mut done_curr),
-            },
-
-            'k' => match panel {
-                Status::Todo => list_up(&mut todo_curr),
-                Status::Done => list_up(&mut done_curr),
-            },
-            'j' => match panel {
-                Status::Todo => list_down(&todos, &mut todo_curr),
-                Status::Done => list_down(&dones, &mut done_curr),
-            },
-            'd' => match panel {
-                Status::Todo => {
-                    list_delete(&mut todos, &mut todo_curr);
-                    notification.push_str("Done!")
-                }
-                Status::Done => {
-                    list_delete(&mut dones, &mut done_curr);
-                    notification.push_str("No, not done yet...");
-                }
-            },
-            '\n' => match panel {
-                Status::Todo => list_transfer(&mut dones, &mut todos, &mut todo_curr),
-                Status::Done => list_transfer(&mut todos, &mut dones, &mut done_curr),
-            },
-            '\t' => {
-                panel = panel.toggle();
-            }
-            _ => {
-                // todos.push(format!("{} ", key));
-            }
+            key_current = Some(key);
         }
     }
 
     endwin();
+
     save_state(&todos, &dones, &file_path);
     println!("Saved state to {}", file_path);
 }
